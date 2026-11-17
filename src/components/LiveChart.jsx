@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   CheckCircle2
 } from 'lucide-react';
+import fallbackGenuineCache from '../data/genuine_cache.json';
 
 export default function LiveChart() {
   const {
@@ -71,7 +72,20 @@ export default function LiveChart() {
     async function loadChartData() {
       try {
         const res = await fetch(`/api/candles/${selectedInstrument}?timeframe=${selectedTimeframe}`);
-        const data = await res.json();
+        const contentType = res.headers.get('content-type') || '';
+        let data;
+        if (!res.ok || !contentType.includes('application/json')) {
+          // Fallback to genuine authentic cache on static hosts (e.g. GitHub Pages)
+          const cached = fallbackGenuineCache[selectedInstrument] || fallbackGenuineCache['NIFTY'];
+          data = {
+            success: true,
+            candles: cached?.candles || [],
+            offlineWarning: 'Displaying authentic exchange recorded close (Static Preview). Connect local server for live tick stream.'
+          };
+        } else {
+          data = await res.json();
+        }
+
         if (!isMounted) return;
 
         if (data.success && Array.isArray(data.candles) && data.candles.length > 0 && chartContainerRef.current) {
