@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { createChart, ColorType, CandlestickSeries } from 'lightweight-charts';
 import { useMarket } from '../context/MarketContext';
+import fallbackGenuineCache from '../data/genuine_cache.json';
 
 export default function MiniTradeChart({ trade, height = 240 }) {
   const chartContainerRef = useRef(null);
@@ -17,7 +18,17 @@ export default function MiniTradeChart({ trade, height = 240 }) {
     // Fetch candle data for this instrument
     const instId = trade.instrumentId || 'NIFTY';
     fetch(`/api/candles/${instId}?timeframe=15m`)
-      .then(r => r.json())
+      .then(async r => {
+        const ct = r.headers.get('content-type') || '';
+        if (r.ok && ct.includes('application/json')) {
+          return await r.json();
+        }
+        throw new Error('Static host');
+      })
+      .catch(() => {
+        const cached = fallbackGenuineCache[`${instId}_15m`] || fallbackGenuineCache['NIFTY_15m'];
+        return { success: true, candles: cached?.candles || [] };
+      })
       .then(data => {
         if (!isMounted || !chartContainerRef.current) return;
         if (!data.success || !Array.isArray(data.candles) || data.candles.length === 0) return;

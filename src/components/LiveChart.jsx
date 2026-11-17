@@ -76,7 +76,8 @@ export default function LiveChart() {
         let data;
         if (!res.ok || !contentType.includes('application/json')) {
           // Fallback to genuine authentic cache on static hosts (e.g. GitHub Pages)
-          const cached = fallbackGenuineCache[selectedInstrument] || fallbackGenuineCache['NIFTY'];
+          const cacheKey = `${selectedInstrument}_${selectedTimeframe}`;
+          const cached = fallbackGenuineCache[cacheKey] || fallbackGenuineCache[`${selectedInstrument}_15m`] || fallbackGenuineCache['NIFTY_15m'];
           data = {
             success: true,
             candles: cached?.candles || [],
