@@ -90,7 +90,22 @@ export default function LiveChart() {
         if (!isMounted) return;
 
         if (data.success && Array.isArray(data.candles) && data.candles.length > 0 && chartContainerRef.current) {
-          setCandlesData(data.candles);
+          // Normalize any instantaneous single-tick data point into a proper candlestick
+          const normalizedCandles = data.candles.map((c, i, arr) => {
+            if (c.open === c.close && c.high === c.low) {
+              const prev = arr[i - 1];
+              const prevClose = prev ? prev.close : c.close;
+              const spread = c.close * 0.0006;
+              return {
+                ...c,
+                open: prevClose,
+                high: Number((Math.max(prevClose, c.close) + spread).toFixed(2)),
+                low: Number((Math.min(prevClose, c.close) - spread).toFixed(2))
+              };
+            }
+            return c;
+          });
+          setCandlesData(normalizedCandles);
           setError(null);
 
           if (data.offlineWarning) {
@@ -164,7 +179,7 @@ export default function LiveChart() {
             wickUpColor: '#10b981',
             wickDownColor: '#f43f5e'
           });
-          candleSeries.setData(data.candles);
+          candleSeries.setData(normalizedCandles);
           candleSeriesRef.current = candleSeries;
 
           // 2. Volume Series (lightweight-charts v5: dedicated overlay price scale)
@@ -184,7 +199,7 @@ export default function LiveChart() {
             console.warn('Volume priceScale options warning:', e);
           }
 
-          const volumeData = data.candles.map(c => ({
+          const volumeData = normalizedCandles.map(c => ({
             time: c.time,
             value: Number(c.volume) || 0,
             color: c.close >= c.open
@@ -201,7 +216,7 @@ export default function LiveChart() {
               lineWidth: 1.5,
               title: 'EMA 9'
             });
-            const ema9Data = data.candles.map((c, i) => ({
+            const ema9Data = normalizedCandles.map((c, i) => ({
               time: c.time,
               value: data.indicators.ema9[i]
             })).filter(d => d.value !== null && !isNaN(d.value));
@@ -215,7 +230,7 @@ export default function LiveChart() {
               lineWidth: 1.5,
               title: 'EMA 21'
             });
-            const ema21Data = data.candles.map((c, i) => ({
+            const ema21Data = normalizedCandles.map((c, i) => ({
               time: c.time,
               value: data.indicators.ema21[i]
             })).filter(d => d.value !== null && !isNaN(d.value));
@@ -229,7 +244,7 @@ export default function LiveChart() {
               lineWidth: 1.5,
               title: 'EMA 50'
             });
-            const ema50Data = data.candles.map((c, i) => ({
+            const ema50Data = normalizedCandles.map((c, i) => ({
               time: c.time,
               value: data.indicators.ema50[i]
             })).filter(d => d.value !== null && !isNaN(d.value));
@@ -593,6 +608,10 @@ export default function LiveChart() {
               {activeSignal.signalType} @ {activeSignal.currencySymbol}{activeSignal.entryPrice}
             </span>
             <span className="text-slate-300 dark:text-slate-700">|</span>
+            <span className="text-indigo-600 dark:text-indigo-400 font-semibold text-[11px]">
+              {activeSignal.strategyName}
+            </span>
+            <span className="text-slate-300 dark:text-slate-700">|</span>
             <div className="flex items-center space-x-1 text-slate-600 dark:text-slate-300 font-mono text-[11px]">
               <Clock className="w-3.5 h-3.5 text-indigo-500" />
               <span>Executed:</span>
@@ -600,6 +619,13 @@ export default function LiveChart() {
                 {activeSignal.executedAtFormatted || activeSignal.executedAt}
               </strong>
             </div>
+            <span className="text-slate-300 dark:text-slate-700">|</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold font-mono text-[11px]">
+              T2: {activeSignal.currencySymbol}{activeSignal.target2}
+            </span>
+            <span className="text-rose-600 dark:text-rose-400 font-semibold font-mono text-[11px]">
+              SL: {activeSignal.currencySymbol}{activeSignal.stopLoss}
+            </span>
           </div>
 
           <div className="flex items-center space-x-3 font-mono text-xs">
@@ -615,10 +641,10 @@ export default function LiveChart() {
 
       {/* OHLCV Crosshair Subheader */}
       {activeCandle && (
-        <div className={`px-4 py-1.5 border-b flex flex-wrap items-center space-x-3 text-[11px] font-mono-numbers ${
+        <div className={`px-4 py-1.5 border-b flex items-center space-x-4 text-[11px] font-mono-numbers overflow-x-auto whitespace-nowrap scrollbar-none ${
           isDark ? 'bg-[#090d14] border-slate-800/50 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-600'
         }`}>
-          <div className="flex items-center space-x-1.5 text-indigo-600 dark:text-indigo-400 font-semibold pr-2.5 border-r border-slate-200 dark:border-slate-800">
+          <div className="flex items-center space-x-1.5 text-indigo-600 dark:text-indigo-400 font-semibold pr-3 border-r border-slate-200 dark:border-slate-800">
             <Clock className="w-3.5 h-3.5" />
             <span>Time:</span>
             <span className="text-slate-900 dark:text-white font-mono font-bold">
@@ -630,15 +656,6 @@ export default function LiveChart() {
           <div><span className="text-slate-400">L:</span> <span className="text-slate-900 dark:text-slate-200 font-semibold">{activeCandle.low}</span></div>
           <div><span className="text-slate-400">C:</span> <span className={activeCandle.close >= activeCandle.open ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-rose-600 dark:text-rose-400 font-bold'}>{activeCandle.close}</span></div>
           <div><span className="text-slate-400">Vol:</span> <span className="text-slate-900 dark:text-slate-200 font-semibold font-mono">{activeCandle.volume ? Number(activeCandle.volume).toLocaleString('en-IN') : '0'}</span></div>
-          {activeSignal && (
-            <div className="flex items-center space-x-2 pl-3 border-l border-slate-200 dark:border-slate-800">
-              <span className="text-amber-600 dark:text-amber-400 font-bold uppercase">Setup:</span>
-              <span className="text-slate-700 dark:text-slate-300 font-semibold">{activeSignal.strategyName}</span>
-              <span className="text-slate-400">|</span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">T2: {activeSignal.target2}</span>
-              <span className="text-rose-600 dark:text-rose-400 font-semibold">SL: {activeSignal.stopLoss}</span>
-            </div>
-          )}
         </div>
       )}
 

@@ -13,7 +13,7 @@ const DEFAULT_INSTRUMENTS = [
     lotSize: 25,
     tickSize: 0.05,
     type: 'INDEX_FUTURES',
-    basePrice: 25144.30
+    basePrice: 25415.10
   },
   {
     id: 'BANKNIFTY',
@@ -24,7 +24,7 @@ const DEFAULT_INSTRUMENTS = [
     lotSize: 15,
     tickSize: 0.05,
     type: 'INDEX_FUTURES',
-    basePrice: 61034.10
+    basePrice: 62267.20
   },
   {
     id: 'SENSEX',
@@ -35,7 +35,7 @@ const DEFAULT_INSTRUMENTS = [
     lotSize: 10,
     tickSize: 0.05,
     type: 'INDEX_FUTURES',
-    basePrice: 81592.45
+    basePrice: 82506.69
   },
   {
     id: 'CRUDEOIL',
@@ -202,7 +202,7 @@ export function MarketProvider({ children }) {
               strategyKey: 'STRAT_OPTION_CHAIN_FLOW',
               strategyName: 'Option Chain Institutional OI Call Surge',
               historicalWinRate: '68.9%',
-              executedAtFormatted: '17 Nov 2026, 09:06:55 am'
+              executedAtFormatted: '17 Nov 2026, 09:30:15 am'
             },
             {
               id: 'SIG-SENSEX-APPROVED-INIT',
@@ -211,20 +211,20 @@ export function MarketProvider({ children }) {
               currency: 'INR',
               currencySymbol: '₹',
               signalType: 'BUY',
-              entryPrice: 81592.45,
-              currentPrice: 82299.49,
-              stopLoss: 81364.04,
-              target1: 82049.27,
-              target2: 82391.89,
-              target3: 82734.50,
+              entryPrice: 82150.00,
+              currentPrice: 82506.69,
+              stopLoss: 81850.00,
+              target1: 82550.00,
+              target2: 82850.00,
+              target3: 83200.00,
               riskReward: '1:3.50',
-              pnl: 28281.60,
-              pnlPercentage: 0.87,
+              pnl: 14267.60,
+              pnlPercentage: 0.43,
               suggestedLots: 4,
               suggestedQuantity: 40,
               strategyName: 'Smart Money (SMC) - Break of Structure',
               historicalWinRate: '65.2%',
-              executedAtFormatted: '17 Nov 2026, 02:10:30 am'
+              executedAtFormatted: '17 Nov 2026, 02:10:30 pm'
             }
           ]);
         }
@@ -568,7 +568,7 @@ export function MarketProvider({ children }) {
       throw new Error('Static host');
     } catch {
       // Client-side Option Chain generator for static host (GitHub Pages)
-      const spot = prices[instrumentId]?.price || (instrumentId === 'BANKNIFTY' ? 61034.10 : (instrumentId === 'SENSEX' ? 81592.45 : 25291.10));
+      const spot = prices[instrumentId]?.price || (instrumentId === 'BANKNIFTY' ? 62267.20 : (instrumentId === 'SENSEX' ? 82506.69 : 25415.10));
       const clientChain = getClientOptionChain(instrumentId, spot);
       setOptionChainData(clientChain);
     } finally {

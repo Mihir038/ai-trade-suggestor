@@ -122,11 +122,11 @@ class MarketDataService {
       currency: 'INR',
       currencySymbol: '₹',
       signalType: 'BUY',
-      entryPrice: 81592.45,
-      stopLoss: 81364.04,
-      target1: 82049.27,
-      target2: 82391.89,
-      target3: 82734.50,
+      entryPrice: 82150.00,
+      stopLoss: 81850.00,
+      target1: 82550.00,
+      target2: 82850.00,
+      target3: 83200.00,
       riskReward: '1:3.50',
       riskPercentage: '1.0%',
       lotSize: 10,
@@ -136,9 +136,9 @@ class MarketDataService {
       strategyKey: 'STRAT_SMC_BOS',
       strategyName: 'Smart Money (SMC) - Break of Structure',
       historicalWinRate: '65.2%',
-      currentPrice: 81592.45,
+      currentPrice: 82506.69,
       timeframe: '15m',
-      invalidationCondition: 'Candle close below 81364.04 invalidates bullish structure'
+      invalidationCondition: 'Candle close below 81850.00 invalidates bullish structure'
     };
 
     // Add to pending then immediately approve to establish first active executed trade

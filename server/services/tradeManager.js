@@ -20,6 +20,7 @@ class TradeLifecycleManager {
   formatDateTime(isoString) {
     const d = isoString ? new Date(isoString) : new Date();
     return d.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
       day: '2-digit',
       month: 'short',
       year: 'numeric',
