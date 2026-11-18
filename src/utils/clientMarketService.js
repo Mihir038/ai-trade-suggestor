@@ -40,7 +40,8 @@ export const INSTRUMENT_MAP = {
     etfSymbol: null,
     currency: 'INR',
     currencySymbol: '₹',
-    tickSize: 1.0
+    tickSize: 1.0,
+    conversionRate: 93.44
   },
   BTCUSD: {
     binanceSymbol: 'BTCUSDT',
@@ -216,12 +217,13 @@ export async function fetchAuthenticCandles(instrumentId, timeframe = '15m') {
         const quote = result.indicators.quote[0];
         const candles = [];
 
+        const rate = instConfig.conversionRate || 1;
         for (let i = 0; i < timestamps.length; i++) {
           if (quote.open[i] != null && quote.close[i] != null && !isNaN(quote.close[i])) {
-            const open = Number(quote.open[i].toFixed(2));
-            const close = Number(quote.close[i].toFixed(2));
-            const high = Number((quote.high[i] || Math.max(open, close)).toFixed(2));
-            const low = Number((quote.low[i] || Math.min(open, close)).toFixed(2));
+            const open = Number((quote.open[i] * rate).toFixed(instConfig.tickSize < 0.1 ? 2 : 1));
+            const close = Number((quote.close[i] * rate).toFixed(instConfig.tickSize < 0.1 ? 2 : 1));
+            const high = Number(((quote.high[i] || Math.max(open, close)) * rate).toFixed(1));
+            const low = Number(((quote.low[i] || Math.min(open, close)) * rate).toFixed(1));
             const volume = quote.volume[i] || 0;
 
             candles.push({
@@ -324,13 +326,24 @@ export async function fetchAuthenticSpotQuotes() {
         else if (q.symbol === 'CL=F') instId = 'CRUDEOIL';
         else if (q.symbol === 'BTC-USD') instId = 'BTCUSD';
 
+        let p = price;
+        let c = change;
+        let h = high;
+        let l = low;
+        if (instId === 'CRUDEOIL') {
+          p = price * 93.44;
+          c = change * 93.44;
+          h = high * 93.44;
+          l = low * 93.44;
+        }
+
         if (instId && price) {
           quoteMap[instId] = {
-            price: Number(price.toFixed(2)),
-            change: Number(change.toFixed(2)),
+            price: Number(p.toFixed(instId === 'CRUDEOIL' ? 1 : 2)),
+            change: Number(c.toFixed(2)),
             changePct: Number(changePct.toFixed(2)),
-            high: Number(high.toFixed(2)),
-            low: Number(low.toFixed(2)),
+            high: Number(h.toFixed(1)),
+            low: Number(l.toFixed(1)),
             volume,
             isLiveFeed: true,
             lastUpdated: new Date().toISOString()

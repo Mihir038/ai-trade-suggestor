@@ -228,7 +228,7 @@ export function generateLiveSignal(prices = {}, existingSignals = []) {
     }
 
     case 'CRUDEOIL_FUT': {
-      const spot = prices.CRUDEOIL?.price || 6150.00;
+      const spot = prices.CRUDEOIL?.price || 7720.00;
       const symbol = 'CRUDE OIL';
       if (existingSymbols.has(symbol)) return null;
 

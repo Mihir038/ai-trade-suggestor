@@ -74,25 +74,24 @@ const INSTRUMENTS = {
     name: 'CRUDE OIL',
     yahooSymbol: 'CL=F',
     binanceSymbol: null,
-    exchange: 'NYMEX / MCX',
-    currency: 'USD',
-    currencySymbol: '$',
-    secondaryCurrency: 'INR',
-    secondaryRate: 86.5, // USD to INR conversion
-    lotSize: 100, // 100 barrels standard MCX / mini NYMEX
-    tickSize: 0.01,
+    exchange: 'MCX (India)',
+    currency: 'INR',
+    currencySymbol: '₹',
+    conversionRate: 93.44, // USD to INR conversion
+    lotSize: 100, // 100 barrels standard MCX
+    tickSize: 1.0,
     minQty: 100,
-    type: 'COMMODITY',
+    type: 'COMMODITY_FUTURES',
     tradingHours: {
       open: '09:00',
       close: '23:30',
       timezone: 'Asia/Kolkata',
       days: [1, 2, 3, 4, 5]
     },
-    defaultCapital: 10000, // $10,000
-    basePrice: 88.56,
-    atrMultiplier: 0.018,
-    description: 'Light Sweet Crude Oil (WTI / MCX), the worlds primary benchmark for petroleum energy markets.'
+    defaultCapital: 500000, // ₹5,00,000
+    basePrice: 7720.00,
+    atrMultiplier: 0.015,
+    description: 'Multi Commodity Exchange (MCX) Crude Oil Futures traded in Indian Rupees (₹) per barrel.'
   },
   BTCUSD: {
     id: 'BTCUSD',

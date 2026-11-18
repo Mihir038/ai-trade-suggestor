@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node server/index.js",
-    "server": "node server/index.js",
+    "start": "node --dns-result-order=ipv4first server/index.js",
+    "server": "node --dns-result-order=ipv4first server/index.js",
     "build": "vite build",
-    "dev": "concurrently \"node server/index.js\" \"vite\"",
+    "dev": "concurrently \"node --dns-result-order=ipv4first server/index.js\" \"vite\"",
     "preview": "vite preview"
   },
   "keywords": [],

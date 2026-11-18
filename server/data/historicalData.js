@@ -123,12 +123,13 @@ async function fetchLiveCandles(instrumentId, timeframe = '15m') {
           const quote = result.indicators.quote[0];
           const candles = [];
 
+          const rate = inst.conversionRate || 1;
           for (let i = 0; i < timestamps.length; i++) {
             if (quote.open[i] != null && quote.close[i] != null && !isNaN(quote.close[i])) {
-              const open = Number(quote.open[i].toFixed(inst.tickSize < 0.1 ? 2 : 2));
-              const high = Number((quote.high[i] || quote.close[i]).toFixed(2));
-              const low = Number((quote.low[i] || quote.open[i]).toFixed(2));
-              const close = Number(quote.close[i].toFixed(2));
+              const open = Number((quote.open[i] * rate).toFixed(inst.tickSize < 0.1 ? 2 : 1));
+              const high = Number(((quote.high[i] || quote.close[i]) * rate).toFixed(1));
+              const low = Number(((quote.low[i] || quote.open[i]) * rate).toFixed(1));
+              const close = Number((quote.close[i] * rate).toFixed(1));
               const volume = quote.volume[i] || 0;
 
               candles.push({

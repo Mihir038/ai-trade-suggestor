@@ -49,7 +49,7 @@ const DEFAULT_INSTRUMENTS = [
     lotSize: 100,
     tickSize: 1.0,
     type: 'COMMODITY_FUTURES',
-    basePrice: 82.61
+    basePrice: 7720.00
   },
   {
     id: 'BTCUSD',
