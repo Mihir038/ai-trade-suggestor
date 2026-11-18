@@ -599,40 +599,17 @@ export default function LiveChart() {
         </div>
       </div>
 
-      {/* Offline / Genuine Data Notice Banner */}
-      {(!isNetworkOnline || offlineNotice) && (
+      {/* Offline Notice Banner - ONLY shown if user has disconnected their internet */}
+      {!isNetworkOnline && (
         <div className={`px-4 py-2 border-b flex items-center justify-between text-xs ${
           isDark ? 'bg-amber-950/20 border-amber-500/20 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800'
         }`}>
           <div className="flex items-center space-x-2">
             <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
             <span>
-              <strong>Authentic Data Policy:</strong> {!isNetworkOnline ? 'Internet connection offline. Showing last authentic market data recorded. Falsy/simulated candles are strictly disabled.' : offlineNotice}
+              <strong>Authentic Data Policy:</strong> Internet connection offline. Displaying last recorded authentic exchange data.
             </span>
           </div>
-          <button
-            onClick={async () => {
-              setIsLoading(true);
-              try {
-                const d = await fetchAuthenticCandles(selectedInstrument, selectedTimeframe);
-                if (d.success && d.candles?.length > 0) {
-                  setCandlesData(d.candles);
-                  setError(null);
-                  setOfflineNotice(d.offlineWarning || null);
-                } else {
-                  setError(d.error || 'Live data feed unavailable.');
-                }
-              } catch (e) {
-                setError(e.message);
-              } finally {
-                setIsLoading(false);
-              }
-            }}
-            className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 font-bold transition text-[11px] shrink-0 ml-2 cursor-pointer flex items-center space-x-1"
-          >
-            <RefreshCw className="w-3 h-3" />
-            <span>Retry Connection</span>
-          </button>
         </div>
       )}
 

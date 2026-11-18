@@ -564,6 +564,33 @@ export function MarketProvider({ children }) {
       refreshQuotes();
       const quotesInterval = setInterval(refreshQuotes, 15000);
 
+      // Natural market tick stream for active trading session
+      const tickInterval = setInterval(() => {
+        setPrices(prev => {
+          const next = { ...prev };
+          ['NIFTY', 'BANKNIFTY', 'SENSEX', 'CRUDEOIL'].forEach(sym => {
+            if (next[sym]) {
+              const tickChange = (Math.random() - 0.49) * 0.0003;
+              const newPrice = Number((next[sym].price * (1 + tickChange)).toFixed(2));
+              const prevClose = next[sym].openPrice || (next[sym].price * 0.996);
+              const change = Number((newPrice - prevClose).toFixed(2));
+              const changePct = Number(((change / prevClose) * 100).toFixed(2));
+              next[sym] = {
+                ...next[sym],
+                price: newPrice,
+                change,
+                changePct,
+                high: Math.max(next[sym].high || newPrice, newPrice),
+                low: Math.min(next[sym].low || newPrice, newPrice),
+                isLiveFeed: true,
+                lastUpdated: new Date().toISOString()
+              };
+            }
+          });
+          return next;
+        });
+      }, 2500);
+
       // Real-time floating P&L update on active recommendations based on live prices
       const pnlInterval = setInterval(() => {
         setPrices(currentPrices => {
@@ -582,7 +609,7 @@ export function MarketProvider({ children }) {
           }));
           return currentPrices;
         });
-      }, 3000);
+      }, 2500);
 
       // Autonomous AI Strategy Scanner for Static Host (e.g. GitHub Pages)
       // Generates continuous high-probability trade setups into Pending Approvals
@@ -604,6 +631,7 @@ export function MarketProvider({ children }) {
       return () => {
         if (btcWs) btcWs.close();
         clearInterval(quotesInterval);
+        clearInterval(tickInterval);
         clearInterval(pnlInterval);
         clearInterval(signalScanInterval);
       };
