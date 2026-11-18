@@ -381,56 +381,75 @@ export default function LiveChart() {
     t2LineRef.current = null;
     t3LineRef.current = null;
 
-    if (activeSignal && candleSeriesRef.current) {
+    if (activeSignal && candleSeriesRef.current && candlesData.length > 0) {
       try {
         const execTimeStr = activeSignal.executedAtFormatted 
           ? `(Exec: ${activeSignal.executedAtFormatted.split(',')[1]?.trim() || activeSignal.executedAtFormatted})` 
           : '(Approved)';
 
+        const isOption = activeSignal.isOptionTrade;
+        const lastClose = candlesData[candlesData.length - 1]?.close || 1;
+        // Check if trade entryPrice is comparable to the underlying chart candles
+        const isComparable = Math.abs(activeSignal.entryPrice - lastClose) < lastClose * 0.45;
+        const plotEntryPrice = isComparable ? activeSignal.entryPrice : (activeSignal.strikePrice || lastClose);
+
         entryLineRef.current = candleSeriesRef.current.createPriceLine({
-          price: activeSignal.entryPrice,
+          price: plotEntryPrice,
           color: activeSignal.signalType === 'BUY' ? '#10b981' : '#f43f5e',
           lineWidth: 2,
           lineStyle: 0, // Solid line for approved executed trade
           axisLabelVisible: true,
-          title: `ENTRY ${activeSignal.signalType}: ${activeSignal.currencySymbol}${activeSignal.entryPrice} ${execTimeStr}`
+          title: isOption
+            ? `STRIKE ${activeSignal.strikePrice || plotEntryPrice} ${activeSignal.optionType || 'OPT'} (Premium: ₹${activeSignal.entryPrice}) ${execTimeStr}`
+            : `ENTRY ${activeSignal.signalType}: ${activeSignal.currencySymbol}${activeSignal.entryPrice} ${execTimeStr}`
         });
 
-        slLineRef.current = candleSeriesRef.current.createPriceLine({
-          price: activeSignal.stopLoss,
-          color: '#f43f5e',
-          lineWidth: 2,
-          lineStyle: 2,
-          axisLabelVisible: true,
-          title: `STOP LOSS: ${activeSignal.currencySymbol}${activeSignal.stopLoss}`
-        });
+        // Only draw SL and Targets if price is on the same scale as the candles
+        if (isComparable) {
+          if (activeSignal.stopLoss) {
+            slLineRef.current = candleSeriesRef.current.createPriceLine({
+              price: activeSignal.stopLoss,
+              color: '#f43f5e',
+              lineWidth: 2,
+              lineStyle: 2,
+              axisLabelVisible: true,
+              title: `STOP LOSS: ${activeSignal.currencySymbol}${activeSignal.stopLoss}`
+            });
+          }
 
-        t1LineRef.current = candleSeriesRef.current.createPriceLine({
-          price: activeSignal.target1,
-          color: '#10b981',
-          lineWidth: 1.5,
-          lineStyle: 3,
-          axisLabelVisible: true,
-          title: `TARGET 1 (50% Out): ${activeSignal.currencySymbol}${activeSignal.target1}`
-        });
+          if (activeSignal.target1) {
+            t1LineRef.current = candleSeriesRef.current.createPriceLine({
+              price: activeSignal.target1,
+              color: '#10b981',
+              lineWidth: 1.5,
+              lineStyle: 3,
+              axisLabelVisible: true,
+              title: `TARGET 1: ${activeSignal.currencySymbol}${activeSignal.target1}`
+            });
+          }
 
-        t2LineRef.current = candleSeriesRef.current.createPriceLine({
-          price: activeSignal.target2,
-          color: '#10b981',
-          lineWidth: 2,
-          lineStyle: 2,
-          axisLabelVisible: true,
-          title: `TARGET 2 (30% Out): ${activeSignal.currencySymbol}${activeSignal.target2}`
-        });
+          if (activeSignal.target2) {
+            t2LineRef.current = candleSeriesRef.current.createPriceLine({
+              price: activeSignal.target2,
+              color: '#10b981',
+              lineWidth: 2,
+              lineStyle: 2,
+              axisLabelVisible: true,
+              title: `TARGET 2: ${activeSignal.currencySymbol}${activeSignal.target2}`
+            });
+          }
 
-        t3LineRef.current = candleSeriesRef.current.createPriceLine({
-          price: activeSignal.target3,
-          color: '#06b6d4',
-          lineWidth: 2,
-          lineStyle: 2,
-          axisLabelVisible: true,
-          title: `TARGET 3 (Runner): ${activeSignal.currencySymbol}${activeSignal.target3}`
-        });
+          if (activeSignal.target3) {
+            t3LineRef.current = candleSeriesRef.current.createPriceLine({
+              price: activeSignal.target3,
+              color: '#06b6d4',
+              lineWidth: 2,
+              lineStyle: 2,
+              axisLabelVisible: true,
+              title: `TARGET 3: ${activeSignal.currencySymbol}${activeSignal.target3}`
+            });
+          }
+        }
       } catch (e) {
         console.warn('Failed to draw price lines:', e);
       }

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { getClientOptionChain } from '../utils/optionChainHelper';
+import { generateLiveSignal } from '../utils/signalGenerator';
 
 const MarketContext = createContext();
 
@@ -332,41 +333,84 @@ export function MarketProvider({ children }) {
 
   // User Action: Approve and Execute a pending trade signal -> sets onto graph
   const approveTrade = async (signalId) => {
+    let serverTrade = null;
     try {
       const res = await fetch('/api/trades/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ signalId })
       });
-      const data = await res.json();
-      if (data.success && data.trade) {
-        setPendingApprovals(prev => prev.filter(p => p.id !== signalId));
-        setActiveRecommendations(prev => [data.trade, ...prev.filter(r => r.id !== signalId)]);
-        // Focus the chart directly on this approved asset
-        if (data.trade.instrumentId) {
-          setSelectedInstrument(data.trade.instrumentId);
+      const ct = res.headers.get('content-type') || '';
+      if (res.ok && ct.includes('application/json')) {
+        const data = await res.json();
+        if (data.success && data.trade) {
+          serverTrade = data.trade;
         }
-        playSuccessSound();
-        return data.trade;
       }
-    } catch (err) {
-      console.error('Failed to approve trade:', err);
+    } catch {
+      // Offline / Static host fallback
     }
-    return null;
+
+    // Resolve target trade from pendingApprovals
+    const target = pendingApprovals.find(p => p.id === signalId);
+    if (!target && !serverTrade) {
+      console.warn('Signal ID not found for approval:', signalId);
+      return null;
+    }
+
+    const now = new Date();
+    const executedAtFormatted = now.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+
+    const currentInstPrice = prices[target?.instrumentId]?.price || target?.entryPrice || 0;
+    const isBuy = (target?.signalType || 'BUY') === 'BUY';
+    const initialDiff = isBuy ? (currentInstPrice - (target?.entryPrice || 0)) : ((target?.entryPrice || 0) - currentInstPrice);
+    const initialPnl = Number((initialDiff * (target?.suggestedQuantity || 1)).toFixed(2));
+    const initialPnlPct = Number((((target?.entryPrice || 1) ? (initialDiff / target.entryPrice) : 0) * 100).toFixed(2));
+
+    const approvedTrade = serverTrade || {
+      ...target,
+      status: 'ACTIVE_APPROVED',
+      executedAt: now.toISOString(),
+      executedAtFormatted,
+      currentPrice: currentInstPrice,
+      pnl: initialPnl,
+      pnlPercentage: initialPnlPct
+    };
+
+    // Atomically update state: remove from pending, prepend to active recommendations
+    setPendingApprovals(prev => prev.filter(p => p.id !== signalId));
+    setActiveRecommendations(prev => [approvedTrade, ...prev.filter(r => r.id !== signalId)]);
+
+    // Focus chart on this approved asset
+    if (approvedTrade.instrumentId) {
+      setSelectedInstrument(approvedTrade.instrumentId);
+    }
+
+    // Play crisp execution confirmation audio chime
+    playSuccessSound();
+
+    return approvedTrade;
   };
 
   // User Action: Reject / Dismiss a pending trade signal
   const rejectTrade = async (signalId, reason = 'User Dismissed') => {
     try {
-      await fetch('/api/trades/reject', {
+      fetch('/api/trades/reject', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ signalId, reason })
-      });
-      setPendingApprovals(prev => prev.filter(p => p.id !== signalId));
-    } catch (err) {
-      console.error('Failed to reject trade:', err);
-    }
+      }).catch(() => {});
+    } catch {}
+    setPendingApprovals(prev => prev.filter(p => p.id !== signalId));
   };
 
   // Connect WebSocket & Live Ticks
@@ -526,12 +570,42 @@ export function MarketProvider({ children }) {
         }));
       }, 3000);
 
+      // Autonomous AI Strategy Scanner for Static Host (e.g. GitHub Pages)
+      // Generates continuous high-probability trade setups into Pending Approvals
+      const signalScanInterval = setInterval(() => {
+        setPendingApprovals(prevPending => {
+          if (prevPending.length >= 6) return prevPending;
+
+          const newSignal = generateLiveSignal(prices, [...prevPending, ...activeRecommendations]);
+          if (!newSignal) return prevPending;
+
+          // Alert user with chime and floating alert banner
+          playAlertSound();
+          setLastAlert(newSignal);
+
+          return [newSignal, ...prevPending];
+        });
+      }, 24000); // Scans and produces new trade opportunity every 24 seconds
+
       return () => {
         if (btcWs) btcWs.close();
         clearInterval(tickInterval);
+        clearInterval(signalScanInterval);
       };
     }
   }, [selectedInstrument, soundEnabled]);
+
+  // Manual trigger to scan and generate an instant AI trade setup on demand
+  const triggerManualScan = () => {
+    const newSignal = generateLiveSignal(prices, [...pendingApprovals, ...activeRecommendations]);
+    if (newSignal) {
+      setPendingApprovals(prev => [newSignal, ...prev]);
+      playAlertSound();
+      setLastAlert(newSignal);
+      return newSignal;
+    }
+    return null;
+  };
 
   // Force trigger simulated opportunity
   const triggerSimulatedSignal = async (instrumentId, strategyKey, signalType = 'BUY') => {
@@ -669,6 +743,7 @@ export function MarketProvider({ children }) {
         setPendingApprovals,
         approveTrade,
         rejectTrade,
+        triggerManualScan,
         completedTrades,
         strategies,
         connectionStatus,

@@ -88,38 +88,45 @@ export default function MiniTradeChart({ trade, height = 240 }) {
 
         candleSeries.setData(data.candles);
 
-        // Draw Entry Line
+        // Draw Entry Line / Strike Line
+        const refPrice = data.candles[data.candles.length - 1]?.close || 1;
+        const isComparable = Math.abs(trade.entryPrice - refPrice) < refPrice * 0.45;
+        const plotPrice = isComparable ? trade.entryPrice : (trade.strikePrice || refPrice);
+
         candleSeries.createPriceLine({
-          price: trade.entryPrice,
+          price: plotPrice,
           color: trade.signalType === 'BUY' ? '#10b981' : '#f43f5e',
           lineWidth: 2,
           lineStyle: 0,
           axisLabelVisible: true,
-          title: `ENTRY ${trade.currencySymbol || '₹'}${trade.entryPrice}`
+          title: trade.isOptionTrade
+            ? `STRIKE ${trade.strikePrice || plotPrice}`
+            : `ENTRY ${trade.currencySymbol || '₹'}${trade.entryPrice}`
         });
 
-        // Draw Stop Loss Line
-        if (trade.stopLoss) {
-          candleSeries.createPriceLine({
-            price: trade.stopLoss,
-            color: '#f43f5e',
-            lineWidth: 1.5,
-            lineStyle: 2,
-            axisLabelVisible: true,
-            title: `SL ${trade.currencySymbol || '₹'}${trade.stopLoss}`
-          });
-        }
+        // Only draw Stop Loss and Target if on the same scale as candles
+        if (isComparable) {
+          if (trade.stopLoss) {
+            candleSeries.createPriceLine({
+              price: trade.stopLoss,
+              color: '#f43f5e',
+              lineWidth: 1.5,
+              lineStyle: 2,
+              axisLabelVisible: true,
+              title: `SL ${trade.currencySymbol || '₹'}${trade.stopLoss}`
+            });
+          }
 
-        // Draw Target 1 Line
-        if (trade.target1) {
-          candleSeries.createPriceLine({
-            price: trade.target1,
-            color: '#10b981',
-            lineWidth: 1.5,
-            lineStyle: 3,
-            axisLabelVisible: true,
-            title: `T1 ${trade.currencySymbol || '₹'}${trade.target1}`
-          });
+          if (trade.target1) {
+            candleSeries.createPriceLine({
+              price: trade.target1,
+              color: '#10b981',
+              lineWidth: 1.5,
+              lineStyle: 3,
+              axisLabelVisible: true,
+              title: `T1 ${trade.currencySymbol || '₹'}${trade.target1}`
+            });
+          }
         }
 
         // Fit content cleanly

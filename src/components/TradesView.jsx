@@ -29,6 +29,7 @@ export default function TradesView({ onSelectExplanation, onOpenFocusedChart }) 
     completedTrades,
     approveTrade,
     rejectTrade,
+    triggerManualScan,
     setSelectedInstrument,
     theme
   } = useMarket();
@@ -197,16 +198,36 @@ export default function TradesView({ onSelectExplanation, onOpenFocusedChart }) 
       {/* SUB-TAB 1: PENDING APPROVALS */}
       {activeSubTab === 'pending' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center space-x-2">
               <Clock className="w-5 h-5 text-amber-500" />
               <h2 className="text-base font-bold text-slate-900 dark:text-white">
                 Pending Trade Approvals ({pendingApprovals.length})
               </h2>
             </div>
-            <span className="text-xs text-slate-400">
-              Only approved setups will be executed and plotted onto the chart
-            </span>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => {
+                  if (triggerManualScan) {
+                    triggerManualScan();
+                  }
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs transition cursor-pointer flex items-center space-x-1.5 shadow-sm"
+                title="Immediately run institutional AI strategy scanner to find live trade setups"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                <span>Scan for AI Signals Now</span>
+              </button>
+              <button
+                onClick={() => setActiveSubTab('options')}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer flex items-center space-x-1.5 ${
+                  isDark ? 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Option Chain</span>
+              </button>
+            </div>
           </div>
 
           {pendingApprovals.length === 0 ? (
@@ -216,14 +237,27 @@ export default function TradesView({ onSelectExplanation, onOpenFocusedChart }) 
               <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
               <h3 className="font-bold text-slate-900 dark:text-white">All Caught Up!</h3>
               <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                No setups currently waiting for approval. When market strategies detect high-probability entries or when you pick contracts from the Option Chain, they will appear here.
+                No setups currently waiting for approval. Automated AI scanning runs continuously in the background, or you can trigger an immediate scan right now.
               </p>
-              <button
-                onClick={() => setActiveSubTab('options')}
-                className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition cursor-pointer"
-              >
-                Open Option Chain Scanner
-              </button>
+              <div className="mt-4 flex items-center justify-center space-x-3">
+                <button
+                  onClick={() => {
+                    if (triggerManualScan) triggerManualScan();
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center space-x-1.5 shadow-sm"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Scan for AI Signals Now</span>
+                </button>
+                <button
+                  onClick={() => setActiveSubTab('options')}
+                  className={`px-4 py-2 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                    isDark ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-white' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  Pick from Option Chain
+                </button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
