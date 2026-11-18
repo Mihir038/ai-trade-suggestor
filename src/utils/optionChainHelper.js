@@ -104,3 +104,4 @@ export function getClientOptionChain(instrumentId = 'NIFTY', spotPrice = 25291.1
     strikes
   };
 }
+

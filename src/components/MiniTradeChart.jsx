@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { createChart, ColorType, CandlestickSeries } from 'lightweight-charts';
 import { useMarket } from '../context/MarketContext';
 import fallbackGenuineCache from '../data/genuine_cache.json';
+import { formatISTDateTime, formatISTTickMark } from '../utils/formatters';
 
 export default function MiniTradeChart({ trade, height = 240 }) {
   const chartContainerRef = useRef(null);
@@ -53,10 +54,17 @@ export default function MiniTradeChart({ trade, height = 240 }) {
             vertLines: { color: isDark ? 'rgba(30, 41, 59, 0.3)' : 'rgba(226, 232, 240, 0.6)' },
             horzLines: { color: isDark ? 'rgba(30, 41, 59, 0.3)' : 'rgba(226, 232, 240, 0.6)' }
           },
+          localization: {
+            locale: 'en-IN',
+            dateFormat: 'dd MMM yyyy',
+            timeFormatter: (time) => formatISTDateTime(time)
+          },
           timeScale: {
             visible: true,
             borderColor: isDark ? '#1e293b' : '#e2e8f0',
-            timeVisible: true
+            timeVisible: true,
+            secondsVisible: false,
+            tickMarkFormatter: (time, tickMarkType) => formatISTTickMark(time, tickMarkType)
           },
           rightPriceScale: {
             borderColor: isDark ? '#1e293b' : '#e2e8f0',

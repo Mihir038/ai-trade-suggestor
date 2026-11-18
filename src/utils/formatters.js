@@ -52,3 +52,59 @@ export function formatDateTime(timestamp) {
   });
 }
 
+/**
+ * Format timestamp into Indian Standard Time (IST, UTC+5:30)
+ * Example: "18 Nov '26, 11:30 AM"
+ */
+export function formatISTDateTime(timestamp) {
+  if (!timestamp) return '--';
+  const date = typeof timestamp === 'number' ? new Date(timestamp * 1000) : new Date(timestamp);
+  return date.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
+/**
+ * Format timestamp into IST Time only (e.g. "11:30")
+ */
+export function formatISTTime(timestamp) {
+  if (!timestamp) return '--:--';
+  const date = typeof timestamp === 'number' ? new Date(timestamp * 1000) : new Date(timestamp);
+  return date.toLocaleTimeString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+}
+
+/**
+ * Format Lightweight Charts tick marks in IST timezone
+ * TickMarkType: Year = 0, Month = 1, DayOfMonth = 2, Time = 3, TimeWithSeconds = 4
+ */
+export function formatISTTickMark(time, tickMarkType) {
+  const date = typeof time === 'number' ? new Date(time * 1000) : new Date(time);
+  const tz = 'Asia/Kolkata';
+  switch (tickMarkType) {
+    case 0: // Year
+      return date.toLocaleDateString('en-IN', { timeZone: tz, year: 'numeric' });
+    case 1: // Month
+      return date.toLocaleDateString('en-IN', { timeZone: tz, month: 'short' });
+    case 2: // Day of month
+      return date.toLocaleDateString('en-IN', { timeZone: tz, day: 'numeric', month: 'short' });
+    case 3: // Time
+      return date.toLocaleTimeString('en-IN', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+    case 4: // Time with seconds
+      return date.toLocaleTimeString('en-IN', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    default:
+      return date.toLocaleTimeString('en-IN', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+}
+
+

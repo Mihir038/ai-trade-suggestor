@@ -143,6 +143,36 @@ async function fetchLiveCandles(instrumentId, timeframe = '15m') {
           }
 
           if (candles.length > 0) {
+            // Check if volumes are all 0 (common for cash spot index feeds like ^NSEI)
+            if (candles.every(c => c.volume === 0)) {
+              const etfMap = { 'NIFTY': 'NIFTYBEES.NS', 'BANKNIFTY': 'BANKBEES.NS', 'SENSEX': 'SENSEXETF.NS' };
+              const etfSym = etfMap[instrumentId];
+              if (etfSym) {
+                try {
+                  const etfRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(etfSym)}?interval=${yInterval}&range=${yRange}`, {
+                    headers: { 'User-Agent': 'Mozilla/5.0' },
+                    signal: AbortSignal.timeout(2500)
+                  });
+                  if (etfRes.ok) {
+                    const etfData = await etfRes.json();
+                    const etfR = etfData.chart?.result?.[0];
+                    if (etfR?.timestamp && etfR?.indicators?.quote?.[0]?.volume) {
+                      const vMap = {};
+                      const vols = etfR.indicators.quote[0].volume;
+                      for (let k = 0; k < etfR.timestamp.length; k++) {
+                        if (vols[k]) vMap[etfR.timestamp[k]] = vols[k];
+                      }
+                      candles.forEach(c => {
+                        if (vMap[c.time]) c.volume = vMap[c.time];
+                      });
+                    }
+                  }
+                } catch {
+                  // Ignore ETF fetch failure
+                }
+              }
+            }
+
             // Update cache with authentic data
             const lastFetchedAt = new Date().toISOString();
             candleCache[cacheKey] = {

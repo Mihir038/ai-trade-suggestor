@@ -7,7 +7,7 @@ import {
   LineSeries
 } from 'lightweight-charts';
 import { useMarket } from '../context/MarketContext';
-import { formatCurrency, formatPercent } from '../utils/formatters';
+import { formatCurrency, formatPercent, formatISTDateTime, formatISTTickMark } from '../utils/formatters';
 import {
   Maximize2,
   RefreshCw,
@@ -132,14 +132,24 @@ export default function LiveChart() {
               vertLine: { color: isDark ? '#64748b' : '#94a3b8', width: 1, style: 3, labelBackgroundColor: isDark ? '#1e293b' : '#e2e8f0' },
               horzLine: { color: isDark ? '#64748b' : '#94a3b8', width: 1, style: 3, labelBackgroundColor: isDark ? '#1e293b' : '#e2e8f0' }
             },
+            localization: {
+              locale: 'en-IN',
+              dateFormat: 'dd MMM yyyy',
+              timeFormatter: (time) => formatISTDateTime(time)
+            },
             timeScale: {
               borderColor: isDark ? '#1e293b' : '#e2e8f0',
               timeVisible: true,
-              secondsVisible: false
+              secondsVisible: false,
+              tickMarkFormatter: (time, tickMarkType) => formatISTTickMark(time, tickMarkType)
             },
             rightPriceScale: {
               borderColor: isDark ? '#1e293b' : '#e2e8f0',
-              autoScale: true
+              autoScale: true,
+              scaleMargins: {
+                top: 0.08,
+                bottom: 0.22 // keeps candles cleanly above the volume bars
+              }
             }
           });
 
@@ -157,25 +167,29 @@ export default function LiveChart() {
           candleSeries.setData(data.candles);
           candleSeriesRef.current = candleSeries;
 
-          // 2. Volume Series (lightweight-charts v5: chart.addSeries(HistogramSeries))
+          // 2. Volume Series (lightweight-charts v5: dedicated overlay price scale)
           const volumeSeries = chart.addSeries(HistogramSeries, {
             color: '#26a69a',
             priceFormat: { type: 'volume' },
-            priceScaleId: '' // overlay
+            priceScaleId: 'volume_scale' // dedicated scale to prevent interference with candlestick scale
           });
-          // Adjust volume scale margins
+
+          // Position volume cleanly in bottom 18% of chart without right-side axis clutter
           try {
-            chart.priceScale('').applyOptions({
-              scaleMargins: { top: 0.82, bottom: 0 }
+            volumeSeries.priceScale().applyOptions({
+              scaleMargins: { top: 0.82, bottom: 0 },
+              visible: false
             });
           } catch (e) {
-            // scale options fallback
+            console.warn('Volume priceScale options warning:', e);
           }
 
           const volumeData = data.candles.map(c => ({
             time: c.time,
-            value: c.volume || 1000,
-            color: c.close >= c.open ? 'rgba(16, 185, 129, 0.25)' : 'rgba(244, 63, 94, 0.25)'
+            value: Number(c.volume) || 0,
+            color: c.close >= c.open
+              ? (isDark ? 'rgba(16, 185, 129, 0.45)' : 'rgba(16, 185, 129, 0.55)')
+              : (isDark ? 'rgba(244, 63, 94, 0.45)' : 'rgba(244, 63, 94, 0.55)')
           }));
           volumeSeries.setData(volumeData);
           volumeSeriesRef.current = volumeSeries;
@@ -430,6 +444,12 @@ export default function LiveChart() {
               }`}>
                 {currentInstrumentData?.exchange || 'NSE'}
               </span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border flex items-center space-x-1 ${
+                isDark ? 'bg-indigo-950/60 text-indigo-300 border-indigo-700/50' : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+              }`}>
+                <Clock className="w-3 h-3 mr-1 text-indigo-400" />
+                <span>{selectedTimeframe} Interval • IST (UTC+5:30)</span>
+              </span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                 !isNetworkOnline
                   ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center'
@@ -595,13 +615,21 @@ export default function LiveChart() {
 
       {/* OHLCV Crosshair Subheader */}
       {activeCandle && (
-        <div className={`px-4 py-1.5 border-b flex flex-wrap items-center space-x-4 text-[11px] font-mono-numbers ${
+        <div className={`px-4 py-1.5 border-b flex flex-wrap items-center space-x-3 text-[11px] font-mono-numbers ${
           isDark ? 'bg-[#090d14] border-slate-800/50 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-600'
         }`}>
+          <div className="flex items-center space-x-1.5 text-indigo-600 dark:text-indigo-400 font-semibold pr-2.5 border-r border-slate-200 dark:border-slate-800">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Time:</span>
+            <span className="text-slate-900 dark:text-white font-mono font-bold">
+              {formatISTDateTime(activeCandle.time)} (IST)
+            </span>
+          </div>
           <div><span className="text-slate-400">O:</span> <span className="text-slate-900 dark:text-slate-200 font-semibold">{activeCandle.open}</span></div>
           <div><span className="text-slate-400">H:</span> <span className="text-slate-900 dark:text-slate-200 font-semibold">{activeCandle.high}</span></div>
           <div><span className="text-slate-400">L:</span> <span className="text-slate-900 dark:text-slate-200 font-semibold">{activeCandle.low}</span></div>
           <div><span className="text-slate-400">C:</span> <span className={activeCandle.close >= activeCandle.open ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-rose-600 dark:text-rose-400 font-bold'}>{activeCandle.close}</span></div>
+          <div><span className="text-slate-400">Vol:</span> <span className="text-slate-900 dark:text-slate-200 font-semibold font-mono">{activeCandle.volume ? Number(activeCandle.volume).toLocaleString('en-IN') : '0'}</span></div>
           {activeSignal && (
             <div className="flex items-center space-x-2 pl-3 border-l border-slate-200 dark:border-slate-800">
               <span className="text-amber-600 dark:text-amber-400 font-bold uppercase">Setup:</span>
