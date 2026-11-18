@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { getClientOptionChain } from '../utils/optionChainHelper';
 import { generateLiveSignal } from '../utils/signalGenerator';
+import { fetchAuthenticSpotQuotes } from '../utils/clientMarketService';
 
 const MarketContext = createContext();
 
@@ -535,39 +536,52 @@ export function MarketProvider({ children }) {
         console.warn('Binance direct stream notice:', err);
       }
 
-      // Live tick simulation for Indian indices and active trades P&L
-      const tickInterval = setInterval(() => {
-        setPrices(prev => {
-          const next = { ...prev };
-          ['NIFTY', 'BANKNIFTY', 'SENSEX', 'CRUDEOIL'].forEach(sym => {
-            if (next[sym]) {
-              const drift = (Math.random() - 0.49) * 0.0003;
-              const newPrice = Number((next[sym].price * (1 + drift)).toFixed(2));
-              next[sym] = {
-                ...next[sym],
-                price: newPrice,
-                isLiveFeed: true
-              };
-            }
-          });
-          return next;
-        });
+      // Fetch genuine live spot quotes from Yahoo Finance
+      const refreshQuotes = async () => {
+        try {
+          const quotes = await fetchAuthenticSpotQuotes();
+          if (quotes) {
+            setPrices(prev => {
+              const next = { ...prev };
+              Object.keys(quotes).forEach(k => {
+                if (next[k]) {
+                  next[k] = {
+                    ...next[k],
+                    ...quotes[k]
+                  };
+                }
+              });
+              return next;
+            });
+            setConnectionStatus('connected');
+            setFeedStatus('ONLINE');
+          }
+        } catch (e) {
+          console.warn('Quotes refresh notice:', e);
+        }
+      };
 
-        // Update floating P&L on active recommendations
-        setActiveRecommendations(prev => prev.map(rec => {
-          const curr = rec.currentPrice || rec.entryPrice;
-          const drift = (Math.random() - 0.48) * 0.0004;
-          const newPrice = Number((curr * (1 + drift)).toFixed(2));
-          const diff = rec.signalType === 'BUY' ? (newPrice - rec.entryPrice) : (rec.entryPrice - newPrice);
-          const pnl = Number((diff * (rec.suggestedQuantity || 1)).toFixed(2));
-          const pnlPct = Number(((diff / rec.entryPrice) * 100).toFixed(2));
-          return {
-            ...rec,
-            currentPrice: newPrice,
-            pnl,
-            pnlPercentage: pnlPct
-          };
-        }));
+      refreshQuotes();
+      const quotesInterval = setInterval(refreshQuotes, 15000);
+
+      // Real-time floating P&L update on active recommendations based on live prices
+      const pnlInterval = setInterval(() => {
+        setPrices(currentPrices => {
+          setActiveRecommendations(prev => prev.map(rec => {
+            const instPrice = currentPrices[rec.instrumentId]?.price;
+            const curr = instPrice || rec.currentPrice || rec.entryPrice;
+            const diff = rec.signalType === 'BUY' ? (curr - rec.entryPrice) : (rec.entryPrice - curr);
+            const pnl = Number((diff * (rec.suggestedQuantity || 1)).toFixed(2));
+            const pnlPct = Number(((diff / rec.entryPrice) * 100).toFixed(2));
+            return {
+              ...rec,
+              currentPrice: curr,
+              pnl,
+              pnlPercentage: pnlPct
+            };
+          }));
+          return currentPrices;
+        });
       }, 3000);
 
       // Autonomous AI Strategy Scanner for Static Host (e.g. GitHub Pages)
@@ -589,7 +603,8 @@ export function MarketProvider({ children }) {
 
       return () => {
         if (btcWs) btcWs.close();
-        clearInterval(tickInterval);
+        clearInterval(quotesInterval);
+        clearInterval(pnlInterval);
         clearInterval(signalScanInterval);
       };
     }

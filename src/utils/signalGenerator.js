@@ -320,3 +320,4 @@ export function generateLiveSignal(prices = {}, existingSignals = []) {
       return null;
   }
 }
+
