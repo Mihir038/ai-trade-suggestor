@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { getClientOptionChain } from '../utils/optionChainHelper';
 import { generateLiveSignal } from '../utils/signalGenerator';
 import { fetchAuthenticSpotQuotes } from '../utils/clientMarketService';
+import fallbackGenuineCache from '../data/genuine_cache.json';
 
 const MarketContext = createContext();
 
@@ -15,7 +16,7 @@ const DEFAULT_INSTRUMENTS = [
     lotSize: 25,
     tickSize: 0.05,
     type: 'INDEX_FUTURES',
-    basePrice: 25415.10
+    basePrice: 25261.85
   },
   {
     id: 'BANKNIFTY',
@@ -26,7 +27,7 @@ const DEFAULT_INSTRUMENTS = [
     lotSize: 15,
     tickSize: 0.05,
     type: 'INDEX_FUTURES',
-    basePrice: 62267.20
+    basePrice: 62108.95
   },
   {
     id: 'SENSEX',
@@ -37,7 +38,7 @@ const DEFAULT_INSTRUMENTS = [
     lotSize: 10,
     tickSize: 0.05,
     type: 'INDEX_FUTURES',
-    basePrice: 82506.69
+    basePrice: 82050.23
   },
   {
     id: 'CRUDEOIL',
@@ -48,7 +49,7 @@ const DEFAULT_INSTRUMENTS = [
     lotSize: 100,
     tickSize: 1.0,
     type: 'COMMODITY_FUTURES',
-    basePrice: 6120.00
+    basePrice: 82.61
   },
   {
     id: 'BTCUSD',
@@ -59,7 +60,7 @@ const DEFAULT_INSTRUMENTS = [
     lotSize: 0.01,
     tickSize: 0.1,
     type: 'CRYPTO_SPOT',
-    basePrice: 96450.00
+    basePrice: 64655.75
   }
 ];
 
@@ -73,14 +74,31 @@ export function MarketProvider({ children }) {
   const [prices, setPrices] = useState(() => {
     const init = {};
     DEFAULT_INSTRUMENTS.forEach(inst => {
+      const cacheKey = `${inst.id}_15m`;
+      const candles = fallbackGenuineCache[cacheKey]?.candles || [];
+      const lastCandle = candles[candles.length - 1];
+      const todayCandles = candles.filter(c => {
+        const d = new Date(c.time * 1000);
+        const lastD = lastCandle ? new Date(lastCandle.time * 1000) : new Date();
+        return d.toDateString() === lastD.toDateString();
+      });
+      const dayOpen = todayCandles[0]?.open || (lastCandle ? lastCandle.open : inst.basePrice);
+      const dayHigh = todayCandles.length > 0 ? Math.max(...todayCandles.map(c => c.high)) : (lastCandle ? lastCandle.high : inst.basePrice);
+      const dayLow = todayCandles.length > 0 ? Math.min(...todayCandles.map(c => c.low)) : (lastCandle ? lastCandle.low : inst.basePrice);
+      const currentClose = lastCandle ? lastCandle.close : inst.basePrice;
+      const change = Number((currentClose - dayOpen).toFixed(2));
+      const changePct = Number(((change / dayOpen) * 100).toFixed(2));
+      const dayVolume = todayCandles.reduce((acc, c) => acc + (Number(c.volume) || 0), 0);
+
       init[inst.id] = {
         instrumentId: inst.id,
-        price: inst.basePrice,
-        change: 0,
-        changePct: 0,
-        high: Number((inst.basePrice * 1.006).toFixed(2)),
-        low: Number((inst.basePrice * 0.994).toFixed(2)),
-        volume: 250000,
+        price: currentClose,
+        openPrice: dayOpen,
+        change,
+        changePct,
+        high: dayHigh,
+        low: dayLow,
+        volume: dayVolume || 250000,
         currency: inst.currency,
         currencySymbol: inst.currencySymbol,
         isLiveFeed: true

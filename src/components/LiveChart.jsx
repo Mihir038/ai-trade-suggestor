@@ -22,6 +22,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { fetchAuthenticCandles } from '../utils/clientMarketService';
+import TradingViewWidget from './TradingViewWidget';
 
 export default function LiveChart() {
   const {
@@ -59,6 +60,7 @@ export default function LiveChart() {
   const [showEMA, setShowEMA] = useState(true);
   const [candlesData, setCandlesData] = useState([]);
   const [hoveredCandle, setHoveredCandle] = useState(null);
+  const [chartMode, setChartMode] = useState('strategy'); // 'strategy' | 'tradingview'
 
   const timeframes = ['1m', '5m', '15m', '1h', '1D'];
   const activeSignal = activeRecommendations.find(r => r.instrumentId === selectedInstrument);
@@ -546,8 +548,35 @@ export default function LiveChart() {
           </div>
         </div>
 
-        {/* Right: Timeframe Selectors & Indicator Toggles */}
+        {/* Right: View Mode Toggle & Timeframe Selectors */}
         <div className="flex items-center space-x-2">
+          {/* Chart View Mode Toggle */}
+          <div className={`flex items-center p-0.5 rounded-xl border text-xs font-semibold ${
+            isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-200'
+          }`}>
+            <button
+              onClick={() => setChartMode('strategy')}
+              className={`px-3 py-1 rounded-lg transition cursor-pointer flex items-center space-x-1 ${
+                chartMode === 'strategy'
+                  ? (isDark ? 'bg-indigo-600 text-white shadow-xs font-bold' : 'bg-white text-indigo-600 shadow-xs font-bold')
+                  : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900')
+              }`}
+            >
+              <span>AI Setup Graph</span>
+            </button>
+            <button
+              onClick={() => setChartMode('tradingview')}
+              className={`px-3 py-1 rounded-lg transition cursor-pointer flex items-center space-x-1 ${
+                chartMode === 'tradingview'
+                  ? (isDark ? 'bg-indigo-600 text-white shadow-xs font-bold' : 'bg-white text-indigo-600 shadow-xs font-bold')
+                  : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900')
+              }`}
+            >
+              <TrendingUp className="w-3 h-3 mr-1" />
+              <span>TradingView Live</span>
+            </button>
+          </div>
+
           {/* Timeframe Buttons */}
           <div className={`flex rounded-xl p-0.5 border ${
             isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-200'
@@ -733,7 +762,16 @@ export default function LiveChart() {
             </button>
           </div>
         )}
-        <div ref={chartContainerRef} className="w-full h-full" />
+        {chartMode === 'tradingview' ? (
+          <TradingViewWidget
+            instrumentId={selectedInstrument}
+            timeframe={selectedTimeframe}
+            theme={theme}
+            height={520}
+          />
+        ) : (
+          <div ref={chartContainerRef} className="w-full h-full" />
+        )}
       </div>
 
       {/* Chart Footer Indicator Legend */}

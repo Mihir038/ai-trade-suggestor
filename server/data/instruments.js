@@ -19,7 +19,7 @@ const INSTRUMENTS = {
       days: [1, 2, 3, 4, 5]
     },
     defaultCapital: 500000, // ₹5,00,000
-    basePrice: 25415.10,
+    basePrice: 25261.85,
     atrMultiplier: 0.008,
     description: 'National Stock Exchange benchmark index representing the weighted average of 50 of the largest Indian companies.'
   },
@@ -42,7 +42,7 @@ const INSTRUMENTS = {
       days: [1, 2, 3, 4, 5]
     },
     defaultCapital: 500000, // ₹5,00,000
-    basePrice: 62267.20,
+    basePrice: 62108.95,
     atrMultiplier: 0.012,
     description: 'Index composed of the 12 most liquid and large-capitalised banking stocks listed on the NSE.'
   },
@@ -65,7 +65,7 @@ const INSTRUMENTS = {
       days: [1, 2, 3, 4, 5]
     },
     defaultCapital: 1000000, // ₹10,00,000
-    basePrice: 82506.69,
+    basePrice: 82050.23,
     atrMultiplier: 0.0075,
     description: 'BSE 30 benchmark index representing 30 well-established and financially sound companies across key sectors.'
   },
